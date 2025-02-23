@@ -8,7 +8,7 @@ import {
   ReactFlowInstance, ReactFlowProvider
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Avatar, Card, List } from 'antd';
+import { Avatar, Card, List, Input } from 'antd';
 import { useCallback, useRef, useState } from 'react';
 
 type CustomNode = {
@@ -104,11 +104,33 @@ export default function App() {
   const [edges, setEdges, onEdgesChange] = useEdgesState<CustomEdge>(initialEdges);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<CustomNode, CustomEdge> | null>(null);
+  const [selectedNode, setSelectedNode] = useState<CustomNode | null>(null);
 
   const onConnect = useCallback(
     (params: any) => setEdges((eds) => addEdge(params, eds)),
     [setEdges],
   );
+
+  const onNodeClick = useCallback((event: React.MouseEvent, node: CustomNode) => {
+    setSelectedNode(node);
+  }, []);
+
+  const onNodeLabelChange = (newLabel: string) => {
+    if (!selectedNode) return;
+    
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === selectedNode.id) {
+          return {
+            ...node,
+            data: { ...node.data, label: newLabel },
+          };
+        }
+        return node;
+      })
+    );
+    setSelectedNode((prev) => prev ? { ...prev, data: { ...prev.data, label: newLabel } } : null);
+  };
 
   // Handle drag start
   const onDragStart = (event: React.DragEvent, nodeType: string) => {
@@ -151,6 +173,7 @@ export default function App() {
           onDrop={onDrop}
           onDragOver={(event) => event.preventDefault()}
           onInit={setReactFlowInstance}
+          onNodeClick={onNodeClick}
         >
           <Panel position="top-left">
             <Card title="Components" variant="borderless" style={{ width: 250 }}>
@@ -178,10 +201,19 @@ export default function App() {
             </Card>
           </Panel>
           <Panel position="top-right">
-            <Card title="Card title" variant="borderless" style={{ width: 300 }}>
-              <p>Card content</p>
-              <p>Card content</p>
-              <p>Card content</p>
+            <Card title="Node Properties" variant="borderless" style={{ width: 300 }}>
+              {selectedNode ? (
+                <div>
+                  <label>Node Name:</label>
+                  <Input
+                    value={selectedNode.data.label}
+                    onChange={(e) => onNodeLabelChange(e.target.value)}
+                    style={{ marginTop: 8 }}
+                  />
+                </div>
+              ) : (
+                <p>Select a node to edit its properties</p>
+              )}
             </Card>
           </Panel>
           <Controls />
